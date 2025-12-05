@@ -45,18 +45,19 @@ function authenticateToken(req, res, next) {
     }
 
     try {
-        // Verify token
+        // Verify token using JWT_SECRET (works for both custom and Supabase tokens)
         const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Attach user to request
+        // Support both custom token structure AND Supabase token structure
+        // Supabase tokens use 'sub' for user ID and have email in the payload
         req.user = {
-            userId: payload.userId,
+            userId: payload.userId || payload.sub,  // 'sub' is Supabase's user ID field
             email: payload.email,
-            role: payload.role,
-            businessId: payload.businessId
+            role: payload.role || payload.user_metadata?.role || 'user',
+            businessId: payload.businessId || payload.user_metadata?.business_id || null
         };
 
-        logger.debug(`User authenticated: ${payload.email}`);
+        logger.debug(`User authenticated: ${req.user.email}`);
         next();
     } catch (error) {
         logger.warn('Invalid token:', error.message);
@@ -67,6 +68,9 @@ function authenticateToken(req, res, next) {
         if (error.name === 'TokenExpiredError') {
             errorCode = 'TOKEN_EXPIRED';
             errorMessage = 'Token has expired';
+        } else if (error.name === 'JsonWebTokenError') {
+            errorCode = 'INVALID_TOKEN';
+            errorMessage = 'Token signature is invalid. Ensure JWT_SECRET matches Supabase.';
         }
 
         res.status(403).json({
