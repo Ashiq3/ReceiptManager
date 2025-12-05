@@ -8,10 +8,11 @@ import { CssBaseline } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import ErrorBoundary from './components/ErrorBoundary';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const queryClient = new QueryClient();
 
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
