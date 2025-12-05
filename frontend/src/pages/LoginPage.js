@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../supabase';
 import {
     Box,
     Paper,
@@ -6,8 +7,10 @@ import {
     TextField,
     Button,
     Link,
-    Alert
+    Alert,
+    Divider
 } from '@mui/material';
+import { Google as GoogleIcon } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,6 +34,20 @@ const LoginPage = () => {
             setError(err.response?.data?.error?.message || 'Failed to login');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/dashboard`
+                }
+            });
+            if (error) throw error;
+        } catch (err) {
+            setError(err.message || 'Failed to login with Google');
         }
     };
 
@@ -85,6 +102,21 @@ const LoginPage = () => {
                             Don't have an account? Sign up
                         </Link>
                     </Box>
+
+                    <Box sx={{ my: 2 }}>
+                        <Divider>OR</Divider>
+                    </Box>
+
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<GoogleIcon />}
+                        onClick={handleGoogleLogin}
+                        sx={{ mb: 2 }}
+                    >
+                        Sign in with Google
+                    </Button>
+
                 </form>
             </Paper>
         </Box>

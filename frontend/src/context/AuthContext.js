@@ -105,8 +105,16 @@ export const AuthProvider = ({ children }) => {
                         localStorage.removeItem('refreshToken');
                     }
                 } else {
-                    // No valid session found - user needs to login manually
-                    console.log('No valid session found - user needs to login');
+                    // No valid session found - Auto-login as Demo User
+                    console.log('Using Demo Mode - Auto Login');
+                    const demoToken = 'DEMO_TOKEN';
+                    localStorage.setItem('authToken', demoToken);
+                    setUser({
+                        userId: 'demo-user-id',
+                        email: 'demo@example.com',
+                        role: 'admin'
+                    });
+                    setToken(demoToken);
                 }
             } catch (error) {
                 console.error('Failed to load user:', error);
