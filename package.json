@@ -7,7 +7,7 @@
         "start": "node server.js",
         "dev": "nodemon server.js",
         "build": "npm run build:frontend && npm run build:backend",
-        "build:frontend": "cd frontend && npm run build",
+        "build:frontend": "cd frontend && npm install && npm run build",
         "build:backend": "babel src --out-dir dist",
         "vercel-build": "npm run build:frontend",
         "test": "npm run test:unit && npm run test:integration",
