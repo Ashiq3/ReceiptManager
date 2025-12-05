@@ -38,6 +38,10 @@ const LoginPage = () => {
     };
 
     const handleGoogleLogin = async () => {
+        if (!supabase) {
+            setError('Google login is not configured');
+            return;
+        }
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
