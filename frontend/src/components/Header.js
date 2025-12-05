@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box, Button, Avatar } from '@mui/material';
-import { Menu as MenuIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Logout as LogoutIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +11,35 @@ const Header = ({ onMenuClick }) => {
     const handleLogout = async () => {
         await logout();
         navigate('/login');
+    };
+
+    const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+
+    React.useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) {
+            return;
+        }
+        deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+        } else {
+            console.log('User dismissed the A2HS prompt');
+        }
+        setDeferredPrompt(null);
     };
 
     return (
@@ -54,6 +83,22 @@ const Header = ({ onMenuClick }) => {
 
                 {user && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {deferredPrompt && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                startIcon={<DownloadIcon />}
+                                onClick={handleInstallClick}
+                                sx={{
+                                    borderRadius: '20px',
+                                    textTransform: 'none',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                Install App
+                            </Button>
+                        )}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Avatar sx={{ bgcolor: 'primary.main', color: 'black', width: 32, height: 32 }}>
                                 {user.email ? user.email[0].toUpperCase() : 'U'}
