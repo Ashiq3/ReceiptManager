@@ -52,8 +52,8 @@ yarn.lock
 # Configuration
 config/local.json
 
-# AI Models
-models/
+# AI Models (root level only)
+/models/
 
 # Frontend build
 frontend/dist/
