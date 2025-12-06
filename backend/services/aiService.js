@@ -89,51 +89,89 @@ class AIService {
     }
 
     async extractDataFromImage(filePath) {
-        return new Promise((resolve, reject) => {
-            try {
-                // Check if file exists
-                if (!fs.existsSync(filePath)) {
-                    throw new Error('File not found');
-                }
-
-                // In a real implementation, this would call the Python AI model
-                // For now, we'll simulate the response
-                logger.info(`Processing image: ${filePath}`);
-
-                // Simulate AI processing
-                setTimeout(() => {
-                    const simulatedData = {
-                        vendor: 'Sample Vendor Inc.',
-                        date: new Date().toISOString().split('T')[0],
-                        total: 125.50,
-                        payment_method: 'Credit Card',
-                        currency: 'USD',
-                        raw_text: 'Sample receipt text extracted by AI model',
-                        confidence: 0.95,
-                        items: [
-                            {
-                                description: 'Sample Product 1',
-                                quantity: 2,
-                                unit_price: 15.99,
-                                total_price: 31.98,
-                                category: 'Food'
-                            },
-                            {
-                                description: 'Sample Product 2',
-                                quantity: 1,
-                                unit_price: 20.50,
-                                total_price: 20.50,
-                                category: 'Supplies'
-                            }
-                        ]
-                    };
-
-                    resolve(simulatedData);
-                }, 1000); // Simulate 1 second processing time
-            } catch (error) {
-                reject(error);
+        try {
+            // Check if file exists
+            if (!fs.existsSync(filePath)) {
+                throw new Error('File not found');
             }
-        });
+
+            logger.info(`Processing image with Gemini: ${filePath}`);
+
+            // Initialize Gemini
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+            // Read image as base64
+            const imageData = fs.readFileSync(filePath);
+            const base64Image = imageData.toString('base64');
+            const mimeType = filePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+            // Create the prompt for receipt extraction
+            const prompt = `Analyze this receipt image and extract the following information in JSON format:
+{
+    "vendor": "store/vendor name",
+    "date": "YYYY-MM-DD format",
+    "total": numeric total amount,
+    "payment_method": "cash/credit/debit/other",
+    "currency": "USD/EUR/etc",
+    "raw_text": "all visible text on receipt",
+    "items": [
+        {
+            "description": "item name",
+            "quantity": numeric quantity,
+            "unit_price": numeric price per unit,
+            "total_price": numeric total for this item,
+            "category": "Food/Supplies/Electronics/etc"
+        }
+    ]
+}
+
+Return ONLY valid JSON, no markdown or extra text.`;
+
+            // Call Gemini API
+            const result = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64Image
+                    }
+                }
+            ]);
+
+            const response = await result.response;
+            const text = response.text();
+
+            // Parse JSON response
+            let extractedData;
+            try {
+                // Clean up the response (remove markdown code blocks if present)
+                let cleanText = text.trim();
+                if (cleanText.startsWith('```json')) {
+                    cleanText = cleanText.slice(7);
+                }
+                if (cleanText.startsWith('```')) {
+                    cleanText = cleanText.slice(3);
+                }
+                if (cleanText.endsWith('```')) {
+                    cleanText = cleanText.slice(0, -3);
+                }
+                extractedData = JSON.parse(cleanText.trim());
+            } catch (parseError) {
+                logger.error('Failed to parse Gemini response:', text);
+                throw new Error('Failed to parse AI response');
+            }
+
+            // Add confidence score
+            extractedData.confidence = 0.95;
+
+            logger.info(`Gemini extraction successful for: ${filePath}`);
+            return extractedData;
+        } catch (error) {
+            logger.error('Gemini extraction failed:', error);
+            throw error;
+        }
     }
 
     async updateReceiptWithData(receiptId, extractedData) {

@@ -21,6 +21,7 @@
         "seed": "knex seed:run"
     },
     "dependencies": {
+        "@google/generative-ai": "^0.24.1",
         "@supabase/supabase-js": "^2.86.0",
         "axios": "^1.13.2",
         "bcrypt": "^5.1.1",
