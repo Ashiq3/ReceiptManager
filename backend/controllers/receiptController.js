@@ -97,7 +97,8 @@ class ReceiptController {
                     error: {
                         code: 'UPLOAD_FAILED',
                         message: 'Receipt upload failed',
-                        detail: error.message || 'Unknown server error'
+                        detail: error.message || 'Unknown server error', // detailed error
+                        stack: process.env.APP_ENV === 'development' ? error.stack : undefined
                     }
                 });
             }
