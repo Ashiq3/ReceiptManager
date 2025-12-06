@@ -73,7 +73,8 @@ const ScanPage = () => {
             }
         } catch (error) {
             console.error('Upload failed:', error);
-            setError(error.response?.data?.error?.message || 'Upload failed');
+            const errorResponse = error.response?.data?.error;
+            setError(errorResponse?.detail || errorResponse?.message || 'Upload failed');
             setIsProcessing(false);
         }
     };
