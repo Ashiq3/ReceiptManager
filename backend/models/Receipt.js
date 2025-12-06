@@ -228,6 +228,32 @@ class Receipt {
 
     async findByBusiness(businessId, { limit = 50, offset = 0, startDate, endDate, vendor, minAmount, maxAmount } = {}) {
         try {
+            // Demo mode check
+            if (businessId === 'demo-business-id') {
+                return [
+                    {
+                        receipt_id: 'demo-receipt-1',
+                        business_id: 'demo-business-id',
+                        original_filename: 'demo_receipt_1.jpg',
+                        vendor_name: 'Demo Office Supples',
+                        receipt_date: new Date().toISOString().split('T')[0],
+                        total_amount: 150.00,
+                        status: 'processed',
+                        processed_at: new Date().toISOString()
+                    },
+                    {
+                        receipt_id: 'demo-receipt-2',
+                        business_id: 'demo-business-id',
+                        original_filename: 'demo_receipt_2.pdf',
+                        vendor_name: 'Demo Software Co',
+                        receipt_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+                        total_amount: 99.99,
+                        status: 'processed',
+                        processed_at: new Date(Date.now() - 86400000).toISOString()
+                    }
+                ];
+            }
+
             let query = this.db.client
                 .from('receipts')
                 .select('*')
@@ -262,6 +288,11 @@ class Receipt {
 
     async countByBusiness(businessId, { startDate, endDate, vendor, minAmount, maxAmount } = {}) {
         try {
+            // Demo mode check
+            if (businessId === 'demo-business-id') {
+                return 2;
+            }
+
             let query = this.db.client
                 .from('receipts')
                 .select('*', { count: 'exact', head: true })
@@ -440,6 +471,17 @@ class Receipt {
 
     async getAnalytics(businessId, { startDate, endDate } = {}) {
         try {
+            // Demo mode check
+            if (businessId === 'demo-business-id') {
+                return {
+                    total_receipts: 15,
+                    total_spending: 4321.50,
+                    avg_per_receipt: 288.10,
+                    first_receipt_date: new Date(Date.now() - 30 * 86400000).toISOString(),
+                    last_receipt_date: new Date().toISOString()
+                };
+            }
+
             // Get total receipts count
             const receipts = await this.db.query('receipts', this.db.client
                 .from('receipts')
@@ -466,6 +508,16 @@ class Receipt {
 
     async getCategoryBreakdown(businessId, { startDate, endDate } = {}) {
         try {
+            // Demo mode check
+            if (businessId === 'demo-business-id') {
+                return [
+                    { category: 'Software', total_amount: 1200.00, item_count: 5 },
+                    { category: 'Office Supplies', total_amount: 500.00, item_count: 10 },
+                    { category: 'Travel', total_amount: 2500.00, item_count: 3 },
+                    { category: 'Meals', total_amount: 121.50, item_count: 2 },
+                ];
+            }
+
             // This is a simplified version - in a real app you'd use PostgreSQL functions
             const items = await this.db.query('receipt_items', this.db.client
                 .from('receipt_items')
