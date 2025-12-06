@@ -235,6 +235,45 @@ class Receipt {
                     };
                 }
 
+                // Hardcoded demo receipts to match findByBusiness (Fix for 404s)
+                if (receiptId === 'demo-receipt-1') {
+                    return {
+                        receipt_id: 'demo-receipt-1',
+                        business_id: 'demo-business-id',
+                        original_filename: 'demo_receipt_1.jpg',
+                        storage_path: 'demo/receipt.jpg',
+                        vendor_name: 'Demo Office Supples',
+                        receipt_date: new Date().toISOString().split('T')[0],
+                        total_amount: 150.00,
+                        status: 'processed',
+                        processed_at: new Date().toISOString(),
+                        users: { email: 'demo@example.com' },
+                        extracted_data: {},
+                        items: [
+                            { description: 'Office Chair', quantity: 1, unit_price: 150.00, total_price: 150.00, category: 'Furniture' }
+                        ]
+                    };
+                }
+
+                if (receiptId === 'demo-receipt-2') {
+                    return {
+                        receipt_id: 'demo-receipt-2',
+                        business_id: 'demo-business-id',
+                        original_filename: 'demo_receipt_2.pdf',
+                        storage_path: 'demo/receipt.pdf',
+                        vendor_name: 'Demo Software Co',
+                        receipt_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+                        total_amount: 99.99,
+                        status: 'processed',
+                        processed_at: new Date(Date.now() - 86400000).toISOString(),
+                        users: { email: 'demo@example.com' },
+                        extracted_data: {},
+                        items: [
+                            { description: 'License', quantity: 1, unit_price: 99.99, total_price: 99.99, category: 'Software' }
+                        ]
+                    };
+                }
+
                 // Fallback: If not in store, return null (404) to avoid showing fake data on Vercel.
                 // This ensures we rely on the synchronous upload response or handle the failure appropriately.
                 return null;

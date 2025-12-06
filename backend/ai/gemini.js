@@ -55,8 +55,9 @@ const processReceipt = async (filePath, mimeType) => {
 
         return JSON.parse(jsonStr);
     } catch (error) {
-        console.error("AI Processing Error:", error);
-        throw new Error("Failed to process receipt with AI");
+        console.error("AI Processing Error:", error.message, error.stack);
+        // Ensure we throw a useful error
+        throw new Error(`Failed to process receipt with AI: ${error.message}`);
     }
 };
 
