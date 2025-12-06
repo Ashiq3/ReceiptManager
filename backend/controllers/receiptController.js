@@ -44,8 +44,18 @@ class ReceiptController {
                 });
             }
 
-            const { business_id } = req.body;
+            // Use business_id from body, fall back to authenticated user's businessId
+            const business_id = req.body.business_id || req.user.businessId;
             const user_id = req.user.userId;
+
+            if (!business_id) {
+                return res.status(400).json({
+                    error: {
+                        code: 'MISSING_BUSINESS_ID',
+                        message: 'Business ID is required'
+                    }
+                });
+            }
 
             // Create receipt record
             const receipt = await Receipt.create({

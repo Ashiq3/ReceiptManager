@@ -49,25 +49,37 @@ class Receipt {
             const fileName = `${uuidv4()}${fileExt}`;
             const storagePath = `receipts/${fileName}`;
 
-            // Determine storage path based on environment
-            // On Vercel, use /tmp which is the only writable directory
-            // In demo mode (demo-business-id), skip file storage entirely
+            // Check if demo mode - completely bypass database and file operations
             const isDemo = receiptData.business_id === 'demo-business-id';
 
-            if (!isDemo) {
-                const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
-                filePath = path.join(baseDir, storagePath);
-                await this.saveFile(file, filePath);
+            if (isDemo) {
+                // Return mock data for demo mode - no database or file operations
+                const mockReceiptId = `demo-receipt-${uuidv4().slice(0, 8)}`;
+                console.log(`Demo mode: Created mock receipt ${mockReceiptId}`);
+                return {
+                    receipt_id: mockReceiptId,
+                    business_id: receiptData.business_id,
+                    original_filename: file.originalname,
+                    storage_path: `demo/${storagePath}`,
+                    status: 'uploaded',
+                    uploaded_by: receiptData.user_id,
+                    created_at: new Date().toISOString()
+                };
             }
 
-            // Create receipt record
+            // Non-demo mode: save file and insert into database
+            const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
+            filePath = path.join(baseDir, storagePath);
+            await this.saveFile(file, filePath);
+
+            // Create receipt record in database
             const db = this.getDb();
             const data = await db.query('receipts', db.client
                 .from('receipts')
                 .insert({
                     business_id: receiptData.business_id,
                     original_filename: file.originalname,
-                    storage_path: isDemo ? `demo/${storagePath}` : storagePath,
+                    storage_path: storagePath,
                     status: 'uploaded',
                     uploaded_by: receiptData.user_id
                 })
