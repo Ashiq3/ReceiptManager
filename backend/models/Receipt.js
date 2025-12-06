@@ -2,12 +2,20 @@ const { getSupabase } = require('../supabaseClient');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const sharp = require('sharp');
+// Use dynamic import for sharp to handle environments where it may not be available
+let sharp = null;
+try {
+    sharp = require('sharp');
+} catch (e) {
+    console.warn('Sharp not available, image optimization disabled');
+}
 
 class Receipt {
     constructor() {
         // Lazy initialization
         this.db = null;
+        // Check if running on Vercel
+        this.isVercel = !!process.env.VERCEL;
     }
 
     getDb() {
@@ -41,9 +49,16 @@ class Receipt {
             const fileName = `${uuidv4()}${fileExt}`;
             const storagePath = `receipts/${fileName}`;
 
-            // Save file to storage
-            filePath = path.join(process.env.STORAGE_LOCAL_PATH || './uploads', storagePath);
-            await this.saveFile(file, filePath);
+            // Determine storage path based on environment
+            // On Vercel, use /tmp which is the only writable directory
+            // In demo mode (demo-business-id), skip file storage entirely
+            const isDemo = receiptData.business_id === 'demo-business-id';
+
+            if (!isDemo) {
+                const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
+                filePath = path.join(baseDir, storagePath);
+                await this.saveFile(file, filePath);
+            }
 
             // Create receipt record
             const db = this.getDb();
@@ -52,7 +67,7 @@ class Receipt {
                 .insert({
                     business_id: receiptData.business_id,
                     original_filename: file.originalname,
-                    storage_path: storagePath,
+                    storage_path: isDemo ? `demo/${storagePath}` : storagePath,
                     status: 'uploaded',
                     uploaded_by: receiptData.user_id
                 })
@@ -82,13 +97,19 @@ class Receipt {
         }
 
         // Save file
-        if (file.mimetype.startsWith('image/')) {
-            // Optimize image
-            await sharp(file.buffer)
-                .resize(2000, 2000, { withoutEnlargement: true })
-                .toFile(filePath);
+        if (sharp && file.mimetype.startsWith('image/')) {
+            // Optimize image with sharp (if available)
+            try {
+                await sharp(file.buffer)
+                    .resize(2000, 2000, { withoutEnlargement: true })
+                    .toFile(filePath);
+            } catch (sharpError) {
+                // If sharp fails, save as-is
+                console.warn('Sharp processing failed, saving raw file:', sharpError.message);
+                fs.writeFileSync(filePath, file.buffer);
+            }
         } else {
-            // Save as-is for PDF
+            // Save as-is for PDF or if sharp is not available
             fs.writeFileSync(filePath, file.buffer);
         }
     }
