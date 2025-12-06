@@ -60,8 +60,9 @@ class SupabaseClient {
             this.logger.info('Supabase connection established successfully');
             return this.client;
         } catch (error) {
-            this.logger.error('Supabase initialization failed:', error);
-            throw error;
+            this.logger.error('Supabase initialization failed (non-fatal):', error);
+            // Return client anyway so the app can start (e.g. for Demo Mode)
+            return this.client;
         }
     }
 

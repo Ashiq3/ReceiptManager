@@ -69,7 +69,8 @@ initializeSupabase()
     .then(() => logger.info('Supabase connected successfully'))
     .catch(err => {
         logger.error('Supabase connection failed:', err);
-        process.exit(1);
+        // Do NOT exit process, allow partial functionality (Demo Mode)
+        // process.exit(1); 
     });
 
 // Routes

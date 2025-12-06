@@ -56,6 +56,8 @@ class Receipt {
                 // Return mock data for demo mode - no database or file operations
                 const mockReceiptId = `demo-receipt-${uuidv4().slice(0, 8)}`;
                 console.log(`Demo mode: Created mock receipt ${mockReceiptId}`);
+                // Ensure db is initialized even for demo (to avoid null checks later if needed, though we should guard against usage)
+                // this.getDb(); 
                 return {
                     receipt_id: mockReceiptId,
                     business_id: receiptData.business_id,
@@ -66,6 +68,9 @@ class Receipt {
                     created_at: new Date().toISOString()
                 };
             }
+
+            // Ensure DB is initialized for non-demo
+            this.getDb();
 
             // Non-demo mode: save file and insert into database
             const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
@@ -128,6 +133,19 @@ class Receipt {
 
     async updateStatus(receiptId, status, extractedData = null) {
         try {
+            // Check for demo receipt
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                console.log(`Demo mode: Skipping DB update for ${receiptId}, status: ${status}`);
+                return {
+                    receipt_id: receiptId,
+                    status: status,
+                    ...extractedData
+                };
+            }
+
+            // Ensure DB is connected
+            this.getDb();
+
             if (extractedData) {
                 const data = await this.db.query('receipts', this.db.client
                     .from('receipts')
@@ -251,6 +269,18 @@ class Receipt {
         if (!items || items.length === 0) {
             return [];
         }
+
+        // Check for demo receipt
+        if (receiptId && receiptId.toString().startsWith('demo-')) {
+            console.log(`Demo mode: Skipping addItems for ${receiptId}`);
+            return items.map((item, index) => ({
+                ...item,
+                item_id: `demo-item-${index}`,
+                receipt_id: receiptId
+            }));
+        }
+
+        this.getDb();
 
         try {
             const results = [];
