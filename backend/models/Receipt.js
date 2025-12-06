@@ -374,6 +374,11 @@ class Receipt {
                 throw new Error('Receipt not found');
             }
 
+            if (this.isVercel) {
+                // On Vercel, files are in /tmp and flattened
+                return path.join('/tmp', path.basename(receipt.storage_path));
+            }
+
             return path.join(process.env.STORAGE_LOCAL_PATH || './uploads', receipt.storage_path);
         } catch (error) {
             throw error;

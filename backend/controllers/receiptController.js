@@ -93,52 +93,63 @@ class ReceiptController {
             // Update status to processing
             await Receipt.updateStatus(receiptId, 'processing');
 
-            // In a real implementation, this would call the AI service
-            // For now, we'll simulate processing
             logger.info(`Processing receipt: ${receiptId}`);
 
-            // Simulate AI processing delay
-            setTimeout(async () => {
-                try {
-                    // Simulated extracted data
-                    const extractedData = {
-                        vendor: 'Sample Vendor',
-                        date: new Date().toISOString().split('T')[0],
-                        total: 125.50,
-                        payment_method: 'Credit Card',
-                        currency: 'USD',
-                        raw_text: 'Sample receipt text extracted by AI',
-                        confidence: 0.95,
-                        items: [
-                            {
-                                description: 'Sample Item 1',
-                                quantity: 2,
-                                unit_price: 15.99,
-                                total_price: 31.98,
-                                category: 'Food'
-                            },
-                            {
-                                description: 'Sample Item 2',
-                                quantity: 1,
-                                unit_price: 20.50,
-                                total_price: 20.50,
-                                category: 'Supplies'
-                            }
-                        ]
-                    };
+            // Get the file path
+            const filePath = await Receipt.getFilePath(receiptId);
 
-                    // Update receipt with extracted data
-                    await Receipt.updateStatus(receiptId, 'processed', extractedData);
+            // Determine mimetype (basic check, ideally passed from upload or stored)
+            // For now assuming extension based or defaulting to image
+            const ext = path.extname(filePath).toLowerCase();
+            let mimeType = 'image/jpeg';
+            if (ext === '.png') mimeType = 'image/png';
+            if (ext === '.pdf') mimeType = 'application/pdf';
+            if (ext === '.webp') mimeType = 'image/webp';
+            if (ext === '.heic') mimeType = 'image/heic';
 
-                    // Add items
-                    await Receipt.addItems(receiptId, extractedData.items);
+            // Call AI Service
+            // We require it dynamically here to separate concerns or checking env
+            const { processReceipt: processWithAI } = require('../ai/gemini');
 
-                    logger.info(`Receipt processed: ${receiptId}`);
-                } catch (error) {
-                    logger.error(`Processing failed for receipt ${receiptId}:`, error);
-                    await Receipt.updateStatus(receiptId, 'failed');
+            let extractedData;
+            try {
+                if (!process.env.GEMINI_API_KEY) {
+                    throw new Error("GEMINI_API_KEY is not set");
                 }
-            }, 2000); // Simulate 2 second processing time
+
+                const aiResult = await processWithAI(filePath, mimeType);
+
+                extractedData = {
+                    vendor: aiResult.vendor || 'Unknown Vendor',
+                    date: aiResult.date || new Date().toISOString().split('T')[0],
+                    total: typeof aiResult.total === 'number' ? aiResult.total : parseFloat(aiResult.total) || 0,
+                    payment_method: aiResult.payment_method || 'Unknown',
+                    currency: aiResult.currency || 'USD',
+                    raw_text: JSON.stringify(aiResult), // Storing full generic JSON as raw text for now
+                    confidence: aiResult.confidence || 0.8,
+                    items: Array.isArray(aiResult.items) ? aiResult.items.map(item => ({
+                        description: item.description || 'Item',
+                        quantity: item.quantity || 1,
+                        unit_price: item.unit_price || 0,
+                        total_price: item.total_price || 0,
+                        category: item.category || 'General'
+                    })) : []
+                };
+
+                // Update receipt with extracted data
+                await Receipt.updateStatus(receiptId, 'processed', extractedData);
+
+                // Add items
+                await Receipt.addItems(receiptId, extractedData.items);
+
+                logger.info(`Receipt processed: ${receiptId}`);
+
+            } catch (aiError) {
+                logger.error(`AI Analysis failed for ${receiptId}:`, aiError);
+                // Fallback or just mark failed? 
+                // Requirement says "AI model will extract" - if it fails, the process fails.
+                await Receipt.updateStatus(receiptId, 'failed');
+            }
         } catch (error) {
             logger.error(`Failed to start processing for receipt ${receiptId}:`, error);
             await Receipt.updateStatus(receiptId, 'failed');
