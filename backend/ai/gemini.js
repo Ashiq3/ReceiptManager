@@ -25,27 +25,22 @@ INSTRUCTIONS:
     *   Examples: "Store Address", "Phone Number", "Website", "Cashier Name", "Time", "Tax ID", "Invoice Number", "Reference Code", "Table Number", "Guest Count", "Tip", "Service Charge".
     *   Use snake_case for keys (e.g., "merchant_address", "tax_number", "cashier_name").
     *   Capture EVERYTHING you can read that isn't a standard field.
+4.  **Fallback (Universal Extraction)**: If the document is NOT a receipt or form (e.g., a screenshot of code, a letter, a sign), extract the main text content into a key called "raw_content" or "document_text" inside "extracted_data". NEVER return an empty object.
 
 RETURN JSON ONLY.
 Structure:
 {
-  "vendor": "Store Name",
-  "date": "2023-01-01",
-  "total": 100.00,
+  "vendor": "Store Name", // or null
+  "date": "2023-01-01",   // or null
+  "total": 100.00,        // or null
   "tax": 8.50,
   "currency": "USD",
   "payment_method": "Credit Card",
-  "items": [
-      { "description": "Item 1", "quantity": 1, "unit_price": 10.00, "total_price": 10.00, "category": "General" }
-  ],
+  "items": [],
   "extracted_data": {
     "merchant_address": "123 Main St, City, State",
-    "merchant_phone": "555-0199",
-    "tax_id": "TAX-123456",
-    "time": "14:30",
-    "invoice_number": "INV-001",
-    "cashier": "Jane Doe",
-    "tip": 5.00
+    "document_summary": "Screenshot of a coding environment showing...",
+    "raw_content": "Full text of the document..."
   }
 }
 `;
