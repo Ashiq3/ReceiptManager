@@ -218,7 +218,8 @@ class ReceiptController {
             }
 
             // Check if user has access
-            if (receipt.business_id.toString() !== req.user.businessId) {
+            // Allow access if it's a demo receipt or if business_id matches
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== req.user.businessId) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -328,7 +329,7 @@ class ReceiptController {
                 });
             }
 
-            if (receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -387,7 +388,7 @@ class ReceiptController {
                 });
             }
 
-            if (receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -431,7 +432,7 @@ class ReceiptController {
                 });
             }
 
-            if (receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
