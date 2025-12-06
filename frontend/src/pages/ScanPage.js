@@ -62,11 +62,15 @@ const ScanPage = () => {
             });
 
             setReceiptId(response.data.receipt_id);
-            setSuccess(true);
-            setIsProcessing(false);
 
-            // Start polling for status
-            pollStatus(response.data.receipt_id);
+            // Check if already processed (e.g. demo mode synchronous processing)
+            if (response.data.status === 'processed') {
+                setSuccess(true);
+                setIsProcessing(false);
+            } else {
+                // Still processing, keep loading state and start polling
+                pollStatus(response.data.receipt_id);
+            }
         } catch (error) {
             console.error('Upload failed:', error);
             setError(error.response?.data?.error?.message || 'Upload failed');

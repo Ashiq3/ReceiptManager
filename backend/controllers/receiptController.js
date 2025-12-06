@@ -65,13 +65,26 @@ class ReceiptController {
 
             logger.info(`Receipt uploaded: ${receipt.receipt_id} for business: ${business_id}`);
 
-            // Start processing (in background)
-            this.processReceipt(receipt.receipt_id);
+            // DEMO MODE: Process synchronously to ensure result is available immediately (crucial for Serverless/Vercel)
+            let extractedData = null;
+            if (receipt.receipt_id.startsWith('demo-')) {
+                try {
+                    logger.info('Demo mode: processing synchronously');
+                    extractedData = await this.processReceipt(receipt.receipt_id);
+                    logger.info('Demo mode: synchronous processing complete');
+                } catch (err) {
+                    logger.error('Demo mode: synchronous processing failed', err);
+                }
+            } else {
+                // Production/DB mode: Process in background
+                this.processReceipt(receipt.receipt_id);
+            }
 
             res.status(201).json({
                 receipt_id: receipt.receipt_id,
-                status: receipt.status,
-                message: 'Receipt uploaded successfully, processing started'
+                status: extractedData ? 'processed' : receipt.status,
+                extracted_data: extractedData,
+                message: 'Receipt uploaded successfully'
             });
         } catch (error) {
             logger.error('Upload receipt error:', error);
@@ -158,6 +171,8 @@ class ReceiptController {
                 }
 
                 logger.info(`Receipt processed successfully: ${receiptId}`);
+
+                return extractedData;
 
             } catch (aiError) {
                 logger.error(`AI Analysis failed for ${receiptId}:`, aiError);
