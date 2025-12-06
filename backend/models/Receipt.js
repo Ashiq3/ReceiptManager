@@ -447,9 +447,11 @@ class Receipt {
             // Demo mode check
             if (receiptId && receiptId.toString().startsWith('demo-')) {
                 // Check in-memory store first for REAL extracted items
-                if (this.demoReceiptsStore[receiptId] && this.demoReceiptsStore[receiptId].extracted_data && this.demoReceiptsStore[receiptId].extracted_data.items) {
+                if (this.demoReceiptsStore[receiptId] && this.demoReceiptsStore[receiptId].extracted_data) {
                     const stored = this.demoReceiptsStore[receiptId];
-                    return stored.extracted_data.items.map((item, index) => ({
+                    const items = stored.extracted_data.items || [];
+
+                    return items.map((item, index) => ({
                         item_id: `demo-item-${index}`,
                         receipt_id: receiptId,
                         item_description: item.description,
@@ -460,7 +462,7 @@ class Receipt {
                     }));
                 }
 
-                // Fallback only if no AI data exists
+                // Fallback ONLY if we really have no data at all (should rarely happen now)
                 return [
                     {
                         item_id: 'demo-item-1',
