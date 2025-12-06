@@ -75,13 +75,16 @@ class ReceiptController {
             });
         } catch (error) {
             logger.error('Upload receipt error:', error);
-            res.status(500).json({
-                error: {
-                    code: 'UPLOAD_FAILED',
-                    message: 'Receipt upload failed',
-                    detail: error.message
-                }
-            });
+            // Ensure headers haven't been sent
+            if (!res.headersSent) {
+                return res.status(500).json({
+                    error: {
+                        code: 'UPLOAD_FAILED',
+                        message: 'Receipt upload failed',
+                        detail: error.message || 'Unknown server error'
+                    }
+                });
+            }
         }
     }
 

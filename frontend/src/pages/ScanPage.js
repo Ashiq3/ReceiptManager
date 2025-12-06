@@ -32,8 +32,8 @@ const ScanPage = () => {
         }
     };
 
-    const handleUpload = async () => {
-        if (!file) {
+    const uploadFile = async (fileToUpload) => {
+        if (!fileToUpload) {
             setError('Please select a file first');
             return;
         }
@@ -45,7 +45,7 @@ const ScanPage = () => {
             setSuccess(false);
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fileToUpload);
             formData.append('business_id', business?.business_id || 'demo-business-id');
 
             const response = await axios.post('/api/receipts/upload', formData, {
@@ -68,33 +68,14 @@ const ScanPage = () => {
             // Start polling for status
             pollStatus(response.data.receipt_id);
         } catch (error) {
+            console.error('Upload failed:', error);
             setError(error.response?.data?.error?.message || 'Upload failed');
             setIsProcessing(false);
         }
     };
 
-    const pollStatus = async (id) => {
-        try {
-            const response = await axios.get(`/api/receipts/${id}/status`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.data.status === 'processed') {
-                setSuccess(true);
-                setIsProcessing(false);
-            } else if (response.data.status === 'failed') {
-                setError('Processing failed');
-                setIsProcessing(false);
-            } else {
-                // Continue polling
-                setTimeout(() => pollStatus(id), 2000);
-            }
-        } catch (error) {
-            setError('Failed to check status');
-            setIsProcessing(false);
-        }
+    const handleUpload = () => {
+        uploadFile(file);
     };
 
     const handleCameraCapture = async () => {
@@ -115,7 +96,8 @@ const ScanPage = () => {
                 if (blob) {
                     const capturedFile = new File([blob], 'receipt.jpg', { type: 'image/jpeg' });
                     setFile(capturedFile);
-                    await handleUpload();
+                    // Pass directly to upload to avoid state race condition
+                    await uploadFile(capturedFile);
                 }
             }, 'image/jpeg');
         }
@@ -184,7 +166,7 @@ const ScanPage = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                     <input
                         type="file"
-                        accept="image/*,application/pdf"
+                        // Removed accept attribute to allow all file types as requested
                         onChange={handleFileChange}
                         style={{ display: 'none' }}
                         id="file-upload"

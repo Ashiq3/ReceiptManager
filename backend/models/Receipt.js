@@ -34,9 +34,11 @@ class Receipt {
                 throw new Error('No file provided');
             }
 
-            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+            // Allow any file type for AI processing, but warn if not standard
+            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'image/webp', 'image/heic'];
+            // We won't block other types, but we'll log them
             if (!allowedTypes.includes(file.mimetype)) {
-                throw new Error('Invalid file type. Only JPEG, PNG, and PDF are supported.');
+                console.warn(`Uploading non-standard file type: ${file.mimetype}`);
             }
 
             const maxSize = 5 * 1024 * 1024; // 5MB
@@ -73,8 +75,15 @@ class Receipt {
             this.getDb();
 
             // Non-demo mode: save file and insert into database
+            // Non-demo mode: save file and insert into database
+            // Critical fix for Vercel: ALWAYS use /tmp
             const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
-            filePath = path.join(baseDir, storagePath);
+
+            // On Vercel, we can't create nested directories reliably in standard paths, 
+            // so we'll flatten the structure or ensure /tmp is used
+            const finalStoragePath = this.isVercel ? path.basename(storagePath) : storagePath;
+            filePath = path.join(baseDir, finalStoragePath);
+
             await this.saveFile(file, filePath);
 
             // Create receipt record in database
