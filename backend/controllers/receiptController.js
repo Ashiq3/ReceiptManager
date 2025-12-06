@@ -154,7 +154,10 @@ class ReceiptController {
                     payment_method: aiResult.payment_method || 'Unknown',
                     currency: aiResult.currency || 'USD',
                     raw_text: JSON.stringify(aiResult),
-                    extracted_data: aiResult, // Store the full dynamic JSON
+                    // CRITICAL FIX: The prompt puts dynamic data into 'extracted_data' sub-object.
+                    // We must unwrap it here so backend stores it as a flat object of "extra fields".
+                    // If the AI didn't nest it (fallback), we use the whole result minus standard fields.
+                    extracted_data: aiResult.extracted_data || {},
                     confidence: aiResult.confidence || 0.8,
                     items: Array.isArray(aiResult.items) ? aiResult.items.map(item => ({
                         description: item.description || 'Item',
