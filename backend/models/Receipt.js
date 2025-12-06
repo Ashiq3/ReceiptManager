@@ -229,8 +229,19 @@ class Receipt {
                 // Return from in-memory store if exists
                 if (this.demoReceiptsStore[receiptId]) {
                     const stored = this.demoReceiptsStore[receiptId];
+                    // Map items if they exist
+                    const items = stored.extracted_data?.items?.map((item, index) => ({
+                        item_id: `demo-item-${index}`,
+                        description: item.description,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        total_price: item.total_price,
+                        category: item.category
+                    })) || [];
+
                     return {
                         ...stored,
+                        items: items,
                         users: { email: 'demo@example.com' }
                     };
                 }
@@ -435,6 +446,21 @@ class Receipt {
         try {
             // Demo mode check
             if (receiptId && receiptId.toString().startsWith('demo-')) {
+                // Check in-memory store first for REAL extracted items
+                if (this.demoReceiptsStore[receiptId] && this.demoReceiptsStore[receiptId].extracted_data && this.demoReceiptsStore[receiptId].extracted_data.items) {
+                    const stored = this.demoReceiptsStore[receiptId];
+                    return stored.extracted_data.items.map((item, index) => ({
+                        item_id: `demo-item-${index}`,
+                        receipt_id: receiptId,
+                        item_description: item.description,
+                        quantity: item.quantity,
+                        unit_price: item.unit_price,
+                        total_price: item.total_price,
+                        category: item.category
+                    }));
+                }
+
+                // Fallback only if no AI data exists
                 return [
                     {
                         item_id: 'demo-item-1',
