@@ -65,29 +65,28 @@ class ReceiptController {
 
             logger.info(`Receipt uploaded: ${receipt.receipt_id} for business: ${business_id}`);
 
-            // DEMO MODE: Process synchronously to ensure result is available immediately (crucial for Serverless/Vercel)
+            // SIMPLIFIED WORKFLOW: Process synchronously for everyone
+            // This ensures the frontend gets the result regardless of mode
             let extractedData = null;
             let processingError = null;
-            if (receipt.receipt_id.startsWith('demo-')) {
-                try {
-                    logger.info('Demo mode: processing synchronously');
-                    extractedData = await this.processReceipt(receipt.receipt_id);
-                    logger.info('Demo mode: synchronous processing complete');
-                } catch (err) {
-                    logger.error('Demo mode: synchronous processing failed', err);
-                    processingError = err.message;
-                }
-            } else {
-                // Production/DB mode: Process in background
-                this.processReceipt(receipt.receipt_id);
+
+            try {
+                logger.info(`Processing receipt synchronously: ${receipt.receipt_id}`);
+                extractedData = await this.processReceipt(receipt.receipt_id);
+                logger.info('Synchronous processing complete');
+            } catch (err) {
+                logger.error('Synchronous processing failed', err);
+                processingError = err.message;
+                // We don't throw here so we can still return the receipt_id, 
+                // but the frontend will see processing_error
             }
 
             res.status(201).json({
                 receipt_id: receipt.receipt_id,
-                status: extractedData ? 'processed' : receipt.status,
+                status: extractedData ? 'processed' : 'failed',
                 extracted_data: extractedData,
                 processing_error: processingError,
-                message: 'Receipt uploaded successfully'
+                message: extractedData ? 'Receipt processed successfully' : 'Receipt processing failed'
             });
         } catch (error) {
             logger.error('Upload receipt error:', error);

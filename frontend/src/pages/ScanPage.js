@@ -61,15 +61,17 @@ const ScanPage = () => {
                 }
             });
 
+            // SIMPLIFIED: Response now contains the result (synchronous)
             setReceiptId(response.data.receipt_id);
 
-            // Check if already processed (e.g. demo mode synchronous processing)
             if (response.data.status === 'processed') {
                 setSuccess(true);
                 setIsProcessing(false);
             } else {
-                // Still processing, keep loading state and start polling
-                pollStatus(response.data.receipt_id);
+                // If backend returned 'failed' or any other status without success
+                const errorMsg = response.data.processing_error || 'Processing failed';
+                setError(errorMsg);
+                setIsProcessing(false);
             }
         } catch (error) {
             console.error('Upload failed:', error);
@@ -79,38 +81,8 @@ const ScanPage = () => {
         }
     };
 
-    const pollStatus = async (id) => {
-        const intervalId = setInterval(async () => {
-            try {
-                const response = await axios.get(`/api/receipts/${id}/status`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                const { status } = response.data;
-
-                if (status === 'processed') {
-                    clearInterval(intervalId);
-                    setIsProcessing(false);
-                    setSuccess(true);
-                } else if (status === 'failed') {
-                    clearInterval(intervalId);
-                    setIsProcessing(false);
-                    setError('Receipt processing failed');
-                }
-                // If 'processing' or 'uploaded', continue polling
-            } catch (err) {
-                console.error('Polling error:', err);
-                if (err.response && (err.response.status === 404 || err.response.status === 403)) {
-                    clearInterval(intervalId);
-                    setIsProcessing(false);
-                    setError('Failed to check status');
-                }
-            }
-        }, 2000);
-
-        // Cleanup interval (manual cleanup logic required in real app if component unmounts, 
-        // but for this simple function scope we rely on state updates to stop it or user navigation)
-    };
+    // Polling removed for simplified workflow
+    // const pollStatus = ...
 
     const handleUpload = () => {
         uploadFile(file);
