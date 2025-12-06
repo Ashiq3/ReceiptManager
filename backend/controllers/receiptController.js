@@ -268,6 +268,7 @@ class ReceiptController {
     async listReceipts(req, res) {
         try {
             const { businessId } = req.user;
+            logger.info(`listReceipts called with businessId: ${businessId}`);
             const {
                 limit = 50,
                 offset = 0,
