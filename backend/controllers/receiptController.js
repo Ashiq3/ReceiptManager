@@ -180,10 +180,12 @@ class ReceiptController {
             } catch (aiError) {
                 logger.error(`AI Analysis failed for ${receiptId}:`, aiError);
                 await Receipt.updateStatus(receiptId, 'failed');
+                throw aiError; // Propagate error to caller
             }
         } catch (error) {
             logger.error(`Failed to start processing for receipt ${receiptId}:`, error);
             await Receipt.updateStatus(receiptId, 'failed');
+            throw error; // Propagate error to caller
         }
     }
 
