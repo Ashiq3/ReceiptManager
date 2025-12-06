@@ -90,6 +90,52 @@ class ReceiptController {
 
     async processReceipt(receiptId) {
         try {
+            // Check for demo receipt
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                logger.info(`Processing demo receipt: ${receiptId}`);
+
+                // Simulate processing delay
+                setTimeout(async () => {
+                    const mockData = {
+                        vendor: 'Demo Vendor',
+                        date: new Date().toISOString().split('T')[0],
+                        total: 123.45,
+                        payment_method: 'Credit Card',
+                        currency: 'USD',
+                        raw_text: '{"demo": true}',
+                        confidence: 0.99,
+                        items: [
+                            {
+                                description: 'Office Supplies',
+                                quantity: 1,
+                                unit_price: 50.00,
+                                total_price: 50.00,
+                                category: 'Office'
+                            },
+                            {
+                                description: 'Software License',
+                                quantity: 1,
+                                unit_price: 73.45,
+                                total_price: 73.45,
+                                category: 'Software'
+                            }
+                        ]
+                    };
+
+                    // We don't really need to update DB for demo as findById mocks response,
+                    // but calling updateStatus checks for demo- prefix and returns mock data, 
+                    // which is good for consistency if we were tracking state in memory used by findById.
+                    // However, our findById mock is stateless. 
+                    // To make the status polling work (if it relies on this method to trigger something),
+                    // we might need a more stateful mock, but for now assuming the polling checks findById
+                    // which returns 'processed' immediately for demo.
+
+                    logger.info(`Demo receipt processed: ${receiptId}`);
+                }, 1000); // 1s delay
+
+                return;
+            }
+
             // Update status to processing
             await Receipt.updateStatus(receiptId, 'processing');
 

@@ -195,6 +195,24 @@ class Receipt {
 
     async findById(receiptId) {
         try {
+            // Demo mode check
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                return {
+                    receipt_id: receiptId,
+                    business_id: 'demo-business-id',
+                    original_filename: 'demo_receipt.jpg',
+                    vendor_name: 'Demo Vendor',
+                    receipt_date: new Date().toISOString().split('T')[0],
+                    total_amount: 123.45,
+                    payment_method: 'Credit Card',
+                    currency: 'USD',
+                    status: 'processed', // Always processed for demo
+                    processed_at: new Date().toISOString(),
+                    storage_path: 'demo/receipt.jpg',
+                    users: { email: 'demo@example.com' }
+                };
+            }
+
             const data = await this.db.query('receipts', this.db.client
                 .from('receipts')
                 .select('*, users(email)')
@@ -318,6 +336,30 @@ class Receipt {
 
     async getItems(receiptId) {
         try {
+            // Demo mode check
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                return [
+                    {
+                        item_id: 'demo-item-1',
+                        receipt_id: receiptId,
+                        item_description: 'Office Supplies',
+                        quantity: 1,
+                        unit_price: 50.00,
+                        total_price: 50.00,
+                        category: 'Office'
+                    },
+                    {
+                        item_id: 'demo-item-2',
+                        receipt_id: receiptId,
+                        item_description: 'Software License',
+                        quantity: 1,
+                        unit_price: 73.45,
+                        total_price: 73.45,
+                        category: 'Software'
+                    }
+                ];
+            }
+
             const data = await this.db.query('receipt_items', this.db.client
                 .from('receipt_items')
                 .select('*')
@@ -333,6 +375,11 @@ class Receipt {
 
     async delete(receiptId) {
         try {
+            // Demo mode check
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                return { message: 'Demo receipt deleted' };
+            }
+
             // Get receipt to delete file
             const receipt = await this.findById(receiptId);
             if (!receipt) {
@@ -369,6 +416,12 @@ class Receipt {
 
     async getFilePath(receiptId) {
         try {
+            // Demo mode check
+            if (receiptId && receiptId.toString().startsWith('demo-')) {
+                // Return a fake path for demo
+                return path.join(process.env.STORAGE_LOCAL_PATH || './uploads', 'demo/receipt.jpg');
+            }
+
             const receipt = await this.findById(receiptId);
             if (!receipt) {
                 throw new Error('Receipt not found');
