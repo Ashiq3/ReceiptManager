@@ -43,8 +43,8 @@ IMPORTANT:
 
 const processReceipt = async (filePath, mimeType) => {
     try {
-        // User requested 2.5, but falling back to 1.5-flash for stability/availability
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Specific version model to avoid "not found" errors with generic alias
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
         const imagePart = fileToGenerativePart(filePath, mimeType);
         const result = await model.generateContent([RECEIPT_PROMPT, imagePart]);
