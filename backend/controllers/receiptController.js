@@ -430,6 +430,20 @@ class ReceiptController {
 
             const filePath = await Receipt.getFilePath(receipt_id);
 
+            // Special handling for demo files which might not exist on disk in Vercel
+            if (filePath.includes('demo') && !fs.existsSync(filePath)) {
+                // If it's a demo file and doesn't exist, we can either return 404 (but handle gracefully in frontend)
+                // OR return a placeholder if we had one. 
+                // For now, let's just log and return 404 but with a specific code so frontend knows to ignore
+                logger.warn(`Demo file not found: ${filePath}`);
+                return res.status(404).json({
+                    error: {
+                        code: 'DEMO_FILE_MISSING',
+                        message: 'Demo receipt file not available'
+                    }
+                });
+            }
+
             if (!fs.existsSync(filePath)) {
                 return res.status(404).json({
                     error: {
