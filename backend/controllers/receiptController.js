@@ -90,71 +90,35 @@ class ReceiptController {
 
     async processReceipt(receiptId) {
         try {
-            // Check for demo receipt
-            if (receiptId && receiptId.toString().startsWith('demo-')) {
-                logger.info(`Processing demo receipt: ${receiptId}`);
+            // Check for demo receipt - now we ACTUALLY process them with AI!
+            const isDemo = receiptId && receiptId.toString().startsWith('demo-');
 
-                // Simulate processing delay
-                setTimeout(async () => {
-                    const mockData = {
-                        vendor: 'Demo Vendor',
-                        date: new Date().toISOString().split('T')[0],
-                        total: 123.45,
-                        payment_method: 'Credit Card',
-                        currency: 'USD',
-                        raw_text: '{"demo": true}',
-                        confidence: 0.99,
-                        items: [
-                            {
-                                description: 'Office Supplies',
-                                quantity: 1,
-                                unit_price: 50.00,
-                                total_price: 50.00,
-                                category: 'Office'
-                            },
-                            {
-                                description: 'Software License',
-                                quantity: 1,
-                                unit_price: 73.45,
-                                total_price: 73.45,
-                                category: 'Software'
-                            }
-                        ]
-                    };
-
-                    // We don't really need to update DB for demo as findById mocks response,
-                    // but calling updateStatus checks for demo- prefix and returns mock data, 
-                    // which is good for consistency if we were tracking state in memory used by findById.
-                    // However, our findById mock is stateless. 
-                    // To make the status polling work (if it relies on this method to trigger something),
-                    // we might need a more stateful mock, but for now assuming the polling checks findById
-                    // which returns 'processed' immediately for demo.
-
-                    logger.info(`Demo receipt processed: ${receiptId}`);
-                }, 1000); // 1s delay
-
-                return;
-            }
+            logger.info(`Processing receipt: ${receiptId} (demo mode: ${isDemo})`);
 
             // Update status to processing
             await Receipt.updateStatus(receiptId, 'processing');
 
-            logger.info(`Processing receipt: ${receiptId}`);
-
-            // Get the file path
-            const filePath = await Receipt.getFilePath(receiptId);
-
-            // Determine mimetype (basic check, ideally passed from upload or stored)
-            // For now assuming extension based or defaulting to image
-            const ext = path.extname(filePath).toLowerCase();
+            // Get the file path - for demo, it's stored in demoReceiptsStore
+            let filePath;
             let mimeType = 'image/jpeg';
-            if (ext === '.png') mimeType = 'image/png';
-            if (ext === '.pdf') mimeType = 'application/pdf';
-            if (ext === '.webp') mimeType = 'image/webp';
-            if (ext === '.heic') mimeType = 'image/heic';
+
+            if (isDemo && Receipt.demoReceiptsStore && Receipt.demoReceiptsStore[receiptId]) {
+                // Get from in-memory store
+                filePath = Receipt.demoReceiptsStore[receiptId].storage_path;
+                mimeType = Receipt.demoReceiptsStore[receiptId].mimetype || 'image/jpeg';
+                logger.info(`Demo receipt file path: ${filePath}`);
+            } else {
+                // Get from database
+                filePath = await Receipt.getFilePath(receiptId);
+                // Determine mimetype from extension
+                const ext = path.extname(filePath).toLowerCase();
+                if (ext === '.png') mimeType = 'image/png';
+                if (ext === '.pdf') mimeType = 'application/pdf';
+                if (ext === '.webp') mimeType = 'image/webp';
+                if (ext === '.heic') mimeType = 'image/heic';
+            }
 
             // Call AI Service
-            // We require it dynamically here to separate concerns or checking env
             const { processReceipt: processWithAI } = require('../ai/gemini');
 
             let extractedData;
@@ -163,7 +127,9 @@ class ReceiptController {
                     throw new Error("GEMINI_API_KEY is not set");
                 }
 
+                logger.info(`Calling Gemini AI for file: ${filePath}, mimeType: ${mimeType}`);
                 const aiResult = await processWithAI(filePath, mimeType);
+                logger.info(`AI Result received for ${receiptId}:`, JSON.stringify(aiResult).slice(0, 200));
 
                 extractedData = {
                     vendor: aiResult.vendor || 'Unknown Vendor',
@@ -171,8 +137,8 @@ class ReceiptController {
                     total: typeof aiResult.total === 'number' ? aiResult.total : parseFloat(aiResult.total) || 0,
                     payment_method: aiResult.payment_method || 'Unknown',
                     currency: aiResult.currency || 'USD',
-                    raw_text: JSON.stringify(aiResult), // Keep raw text for legacy/backup
-                    extracted_data: aiResult, // NEW: Store the full dynamic JSON
+                    raw_text: JSON.stringify(aiResult),
+                    extracted_data: aiResult, // Store the full dynamic JSON
                     confidence: aiResult.confidence || 0.8,
                     items: Array.isArray(aiResult.items) ? aiResult.items.map(item => ({
                         description: item.description || 'Item',
@@ -186,15 +152,15 @@ class ReceiptController {
                 // Update receipt with extracted data
                 await Receipt.updateStatus(receiptId, 'processed', extractedData);
 
-                // Add items
-                await Receipt.addItems(receiptId, extractedData.items);
+                // Add items (skipped for demo as we don't have DB)
+                if (!isDemo) {
+                    await Receipt.addItems(receiptId, extractedData.items);
+                }
 
-                logger.info(`Receipt processed: ${receiptId}`);
+                logger.info(`Receipt processed successfully: ${receiptId}`);
 
             } catch (aiError) {
                 logger.error(`AI Analysis failed for ${receiptId}:`, aiError);
-                // Fallback or just mark failed? 
-                // Requirement says "AI model will extract" - if it fails, the process fails.
                 await Receipt.updateStatus(receiptId, 'failed');
             }
         } catch (error) {
@@ -353,6 +319,7 @@ class ReceiptController {
                 currency: receipt.currency,
                 status: receipt.status,
                 processed_at: receipt.processed_at,
+                extracted_data: receipt.extracted_data || {}, // Dynamic AI extracted data
                 items: items.map(item => ({
                     item_id: item.item_id,
                     description: item.item_description,

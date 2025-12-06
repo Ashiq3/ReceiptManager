@@ -2,10 +2,6 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
 
 // Initialize Gemini
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fs = require('fs');
-
-// Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const fileToGenerativePart = (path, mimeType) => {

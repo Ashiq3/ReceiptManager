@@ -16,6 +16,8 @@ class Receipt {
         this.db = null;
         // Check if running on Vercel
         this.isVercel = !!process.env.VERCEL;
+        // In-memory store for demo receipts (processed data)
+        this.demoReceiptsStore = {};
     }
 
     getDb() {
@@ -51,24 +53,35 @@ class Receipt {
             const fileName = `${uuidv4()}${fileExt}`;
             const storagePath = `receipts/${fileName}`;
 
-            // Check if demo mode - completely bypass database and file operations
+            // Check if demo mode
             const isDemo = receiptData.business_id === 'demo-business-id';
 
             if (isDemo) {
-                // Return mock data for demo mode - no database or file operations
+                // Demo mode: STILL save file for AI processing, but skip database
                 const mockReceiptId = `demo-receipt-${uuidv4().slice(0, 8)}`;
-                console.log(`Demo mode: Created mock receipt ${mockReceiptId}`);
-                // Ensure db is initialized even for demo (to avoid null checks later if needed, though we should guard against usage)
-                // this.getDb(); 
-                return {
+                console.log(`Demo mode: Created receipt ${mockReceiptId}, saving file for AI processing`);
+
+                // Save file to /tmp (or uploads locally) for AI processing
+                const baseDir = this.isVercel ? '/tmp' : (process.env.STORAGE_LOCAL_PATH || './uploads');
+                const finalStoragePath = this.isVercel ? path.basename(storagePath) : storagePath;
+                filePath = path.join(baseDir, finalStoragePath);
+
+                await this.saveFile(file, filePath);
+
+                // Store in memory for later retrieval
+                const demoReceipt = {
                     receipt_id: mockReceiptId,
                     business_id: receiptData.business_id,
                     original_filename: file.originalname,
-                    storage_path: `demo/${storagePath}`,
+                    storage_path: filePath, // Store actual file path for processing
                     status: 'uploaded',
                     uploaded_by: receiptData.user_id,
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    mimetype: file.mimetype
                 };
+
+                this.demoReceiptsStore[mockReceiptId] = demoReceipt;
+                return demoReceipt;
             }
 
             // Ensure DB is initialized for non-demo
@@ -142,9 +155,24 @@ class Receipt {
 
     async updateStatus(receiptId, status, extractedData = null) {
         try {
-            // Check for demo receipt
+            // Check for demo receipt - update in-memory store
             if (receiptId && receiptId.toString().startsWith('demo-')) {
-                console.log(`Demo mode: Skipping DB update for ${receiptId}, status: ${status}`);
+                console.log(`Demo mode: Updating in-memory store for ${receiptId}, status: ${status}`);
+
+                if (this.demoReceiptsStore[receiptId]) {
+                    this.demoReceiptsStore[receiptId].status = status;
+                    if (extractedData) {
+                        this.demoReceiptsStore[receiptId].vendor_name = extractedData.vendor;
+                        this.demoReceiptsStore[receiptId].receipt_date = extractedData.date;
+                        this.demoReceiptsStore[receiptId].total_amount = extractedData.total;
+                        this.demoReceiptsStore[receiptId].payment_method = extractedData.payment_method;
+                        this.demoReceiptsStore[receiptId].currency = extractedData.currency || 'USD';
+                        this.demoReceiptsStore[receiptId].extracted_data = extractedData.extracted_data;
+                        this.demoReceiptsStore[receiptId].processed_at = new Date().toISOString();
+                    }
+                    return this.demoReceiptsStore[receiptId];
+                }
+
                 return {
                     receipt_id: receiptId,
                     status: status,
@@ -196,8 +224,18 @@ class Receipt {
 
     async findById(receiptId) {
         try {
-            // Demo mode check
+            // Demo mode check - use in-memory store if available
             if (receiptId && receiptId.toString().startsWith('demo-')) {
+                // Return from in-memory store if exists
+                if (this.demoReceiptsStore[receiptId]) {
+                    const stored = this.demoReceiptsStore[receiptId];
+                    return {
+                        ...stored,
+                        users: { email: 'demo@example.com' }
+                    };
+                }
+
+                // Fallback to generic demo data if not in store
                 return {
                     receipt_id: receiptId,
                     business_id: 'demo-business-id',
@@ -207,7 +245,7 @@ class Receipt {
                     total_amount: 123.45,
                     payment_method: 'Credit Card',
                     currency: 'USD',
-                    status: 'processed', // Always processed for demo
+                    status: 'processed',
                     processed_at: new Date().toISOString(),
                     storage_path: 'demo/receipt.jpg',
                     users: { email: 'demo@example.com' },
@@ -216,10 +254,7 @@ class Receipt {
                         date: new Date().toISOString().split('T')[0],
                         total: 150.00,
                         invoice_number: 'INV-2023-001',
-                        tax_amount: 12.50,
-                        store_address: '123 Fake Street, Tech City',
-                        cashier_name: 'John Doe',
-                        loyalty_points_earned: 50
+                        note: 'This is fallback demo data. Real AI processing was not performed.'
                     }
                 };
             }
