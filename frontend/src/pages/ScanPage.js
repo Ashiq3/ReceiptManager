@@ -46,7 +46,7 @@ const ScanPage = () => {
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('business_id', business.business_id);
+            formData.append('business_id', business?.business_id || 'demo-business-id');
 
             const response = await axios.post('/api/receipts/upload', formData, {
                 headers: {
