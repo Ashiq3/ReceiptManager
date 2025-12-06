@@ -166,6 +166,7 @@ class Receipt {
                         payment_method: extractedData.payment_method,
                         currency: extractedData.currency || 'USD',
                         raw_text: extractedData.raw_text,
+                        extracted_data: extractedData.extracted_data, // Save JSONB
                         confidence_score: extractedData.confidence || 0.95,
                         processed_at: new Date().toISOString()
                     })
@@ -209,7 +210,17 @@ class Receipt {
                     status: 'processed', // Always processed for demo
                     processed_at: new Date().toISOString(),
                     storage_path: 'demo/receipt.jpg',
-                    users: { email: 'demo@example.com' }
+                    users: { email: 'demo@example.com' },
+                    extracted_data: {
+                        vendor: 'Demo Office Supplies',
+                        date: new Date().toISOString().split('T')[0],
+                        total: 150.00,
+                        invoice_number: 'INV-2023-001',
+                        tax_amount: 12.50,
+                        store_address: '123 Fake Street, Tech City',
+                        cashier_name: 'John Doe',
+                        loyalty_points_earned: 50
+                    }
                 };
             }
 

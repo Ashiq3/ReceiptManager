@@ -171,7 +171,8 @@ class ReceiptController {
                     total: typeof aiResult.total === 'number' ? aiResult.total : parseFloat(aiResult.total) || 0,
                     payment_method: aiResult.payment_method || 'Unknown',
                     currency: aiResult.currency || 'USD',
-                    raw_text: JSON.stringify(aiResult), // Storing full generic JSON as raw text for now
+                    raw_text: JSON.stringify(aiResult), // Keep raw text for legacy/backup
+                    extracted_data: aiResult, // NEW: Store the full dynamic JSON
                     confidence: aiResult.confidence || 0.8,
                     items: Array.isArray(aiResult.items) ? aiResult.items.map(item => ({
                         description: item.description || 'Item',

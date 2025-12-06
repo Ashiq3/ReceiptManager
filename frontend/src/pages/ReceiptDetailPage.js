@@ -336,6 +336,28 @@ const ReceiptDetailPage = () => {
                 </Grid>
             </Paper>
 
+            {/* Extracted Data (Dynamic) */}
+            {receipt.extracted_data && Object.keys(receipt.extracted_data).length > 0 && (
+                <Paper sx={{ p: 3, mt: 3 }}>
+                    <Typography variant="h6" gutterBottom>AI Extracted Details</Typography>
+                    <Divider sx={{ mb: 2 }} />
+                    <Grid container spacing={2}>
+                        {Object.entries(receipt.extracted_data).map(([key, value]) => {
+                            // Skip standard fields we already show or complex objects
+                            if (['items', 'vendor', 'date', 'total', 'currency', 'payment_method', 'confidence'].includes(key) || typeof value === 'object') return null;
+                            return (
+                                <Grid item xs={12} md={4} key={key}>
+                                    <Typography color="text.secondary" variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                        {key.replace(/_/g, ' ')}
+                                    </Typography>
+                                    <Typography variant="body1">{String(value)}</Typography>
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                </Paper>
+            )}
+
             {/* Delete Confirmation Dialog */}
             <Dialog
                 open={deleteDialogOpen}

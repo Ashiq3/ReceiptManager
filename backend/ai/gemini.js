@@ -2,6 +2,10 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
 
 // Initialize Gemini
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fs = require('fs');
+
+// Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const fileToGenerativePart = (path, mimeType) => {
@@ -15,17 +19,30 @@ const fileToGenerativePart = (path, mimeType) => {
 
 // Receipt extraction prompt
 const RECEIPT_PROMPT = `
-You are an expert receipt parser. Extract the following information from this receipt image/PDF and return ONLY a JSON object. Do not include markdown code blocks.
-Fields required:
-- vendor: Name of the vendor
-- date: Date of purchase (YYYY-MM-DD format)
-- total: Total amount (number)
-- currency: Currency code (e.g., USD, EUR)
-- payment_method: Method of payment if visible (e.g., "Credit Card", "Cash")
-- items: Array of objects with { "description": string, "quantity": number, "unit_price": number, "total_price": number, "category": string }
-- confidence: Your confidence score (0-1) in this extraction
+You are an expert document parser. Your job is to extract ALL meaningful data from the provided image (receipt, invoice, form, etc.).
 
-If a field is not found, use null.
+Return a single JSON object where:
+1. Keys are the names of the fields found (e.g., "Invoice Number", "Vendor", "Date", "Total Amount", "Tax", "Shipping Address", "Patient Name", etc.). Use snake_case for keys if possible, but keep them descriptive.
+2. Values are the extracted text.
+3. If there is a list of items, extract them into an "items" array.
+4. Also populate standard fields if found: "vendor", "date", "total", "currency", "payment_method".
+
+Example generic structure (adapt to the document):
+{
+  "vendor": "Store Name",
+  "date": "2023-01-01",
+  "total": 100.00,
+  "currency": "USD",
+  "items": [],
+  "invoice_number": "12345",
+  "shipping_address": "123 Main St",
+  "custom_field_found": "value"
+}
+
+IMPORTANT:
+- Return ONLY valid JSON.
+- No markdown code blocks.
+- Extract EVERYTHING you see that looks important.
 `;
 
 const processReceipt = async (filePath, mimeType) => {
@@ -33,7 +50,6 @@ const processReceipt = async (filePath, mimeType) => {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const imagePart = fileToGenerativePart(filePath, mimeType);
-
         const result = await model.generateContent([RECEIPT_PROMPT, imagePart]);
         const response = await result.response;
         const text = response.text();
