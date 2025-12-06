@@ -267,7 +267,7 @@ class ReceiptController {
 
     async listReceipts(req, res) {
         try {
-            const { business_id } = req.user;
+            const { businessId } = req.user;
             const {
                 limit = 50,
                 offset = 0,
@@ -288,8 +288,8 @@ class ReceiptController {
                 maxAmount: max_amount
             };
 
-            const receipts = await Receipt.findByBusiness(business_id, filterOptions);
-            const total = await Receipt.countByBusiness(business_id, filterOptions);
+            const receipts = await Receipt.findByBusiness(businessId, filterOptions);
+            const total = await Receipt.countByBusiness(businessId, filterOptions);
 
             res.json({
                 total_count: total,
@@ -317,7 +317,7 @@ class ReceiptController {
     async getReceiptDetails(req, res) {
         try {
             const { receipt_id } = req.params;
-            const { business_id } = req.user;
+            const { businessId } = req.user;
 
             const receipt = await Receipt.findById(receipt_id);
 
@@ -330,7 +330,7 @@ class ReceiptController {
                 });
             }
 
-            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== businessId) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -376,7 +376,7 @@ class ReceiptController {
     async deleteReceipt(req, res) {
         try {
             const { receipt_id } = req.params;
-            const { business_id } = req.user;
+            const { businessId } = req.user;
 
             const receipt = await Receipt.findById(receipt_id);
 
@@ -389,7 +389,7 @@ class ReceiptController {
                 });
             }
 
-            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== businessId) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -420,7 +420,7 @@ class ReceiptController {
     async getReceiptFile(req, res) {
         try {
             const { receipt_id } = req.params;
-            const { business_id } = req.user;
+            const { businessId } = req.user;
 
             const receipt = await Receipt.findById(receipt_id);
 
@@ -433,7 +433,7 @@ class ReceiptController {
                 });
             }
 
-            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== business_id) {
+            if (!receipt.receipt_id.startsWith('demo-') && receipt.business_id.toString() !== businessId) {
                 return res.status(403).json({
                     error: {
                         code: 'FORBIDDEN',
@@ -468,15 +468,15 @@ class ReceiptController {
 
     async getAnalytics(req, res) {
         try {
-            const { business_id } = req.user;
+            const { businessId } = req.user;
             const { start_date, end_date } = req.query;
 
-            const analytics = await Receipt.getAnalytics(business_id, {
+            const analytics = await Receipt.getAnalytics(businessId, {
                 startDate: start_date,
                 endDate: end_date
             });
 
-            const categories = await Receipt.getCategoryBreakdown(business_id, {
+            const categories = await Receipt.getCategoryBreakdown(businessId, {
                 startDate: start_date,
                 endDate: end_date
             });
