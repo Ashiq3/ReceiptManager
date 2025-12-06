@@ -235,28 +235,9 @@ class Receipt {
                     };
                 }
 
-                // Fallback to generic demo data if not in store
-                return {
-                    receipt_id: receiptId,
-                    business_id: 'demo-business-id',
-                    original_filename: 'demo_receipt.jpg',
-                    vendor_name: 'Demo Vendor',
-                    receipt_date: new Date().toISOString().split('T')[0],
-                    total_amount: 123.45,
-                    payment_method: 'Credit Card',
-                    currency: 'USD',
-                    status: 'processed',
-                    processed_at: new Date().toISOString(),
-                    storage_path: 'demo/receipt.jpg',
-                    users: { email: 'demo@example.com' },
-                    extracted_data: {
-                        vendor: 'Demo Office Supplies',
-                        date: new Date().toISOString().split('T')[0],
-                        total: 150.00,
-                        invoice_number: 'INV-2023-001',
-                        note: 'This is fallback demo data. Real AI processing was not performed.'
-                    }
-                };
+                // Fallback: If not in store, return null (404) to avoid showing fake data on Vercel.
+                // This ensures we rely on the synchronous upload response or handle the failure appropriately.
+                return null;
             }
 
             const data = await this.db.query('receipts', this.db.client

@@ -67,6 +67,7 @@ class ReceiptController {
 
             // DEMO MODE: Process synchronously to ensure result is available immediately (crucial for Serverless/Vercel)
             let extractedData = null;
+            let processingError = null;
             if (receipt.receipt_id.startsWith('demo-')) {
                 try {
                     logger.info('Demo mode: processing synchronously');
@@ -74,6 +75,7 @@ class ReceiptController {
                     logger.info('Demo mode: synchronous processing complete');
                 } catch (err) {
                     logger.error('Demo mode: synchronous processing failed', err);
+                    processingError = err.message;
                 }
             } else {
                 // Production/DB mode: Process in background
@@ -84,6 +86,7 @@ class ReceiptController {
                 receipt_id: receipt.receipt_id,
                 status: extractedData ? 'processed' : receipt.status,
                 extracted_data: extractedData,
+                processing_error: processingError,
                 message: 'Receipt uploaded successfully'
             });
         } catch (error) {
