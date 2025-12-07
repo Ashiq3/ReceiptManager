@@ -1,24 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
-const winston = require('winston');
+const logger = require('./utils/logger');
 
 class SupabaseClient {
     constructor() {
-        this.logger = winston.createLogger({
-            level: process.env.LOG_LEVEL || 'info',
-            format: winston.format.combine(
-                winston.format.timestamp(),
-                winston.format.json()
-            ),
-            transports: [
-                new winston.transports.Console({
-                    format: winston.format.combine(
-                        winston.format.colorize(),
-                        winston.format.simple()
-                    )
-                })
-            ]
-        });
-
         // Initialize Supabase client
         this.client = createClient(
             process.env.SUPABASE_URL,
@@ -35,14 +19,14 @@ class SupabaseClient {
             }
         );
 
-        this.logger.info('Supabase client initialized');
+        logger.info('Supabase client initialized');
     }
 
     async initialize() {
         try {
             // Skip connection test for local development if using placeholder URL
             if (process.env.SUPABASE_URL && process.env.SUPABASE_URL.includes('placeholder')) {
-                this.logger.warn('Using placeholder Supabase URL - connection test skipped for local development');
+                logger.warn('Using placeholder Supabase URL - connection test skipped for local development');
                 return this.client;
             }
 
@@ -53,14 +37,14 @@ class SupabaseClient {
                 .limit(1);
 
             if (error) {
-                this.logger.error('Supabase connection test failed:', error);
+                logger.error('Supabase connection test failed:', error);
                 throw error;
             }
 
-            this.logger.info('Supabase connection established successfully');
+            logger.info('Supabase connection established successfully');
             return this.client;
         } catch (error) {
-            this.logger.error('Supabase initialization failed (non-fatal):', error);
+            logger.error('Supabase initialization failed (non-fatal):', error);
             // Return client anyway so the app can start (e.g. for Demo Mode)
             return this.client;
         }
@@ -72,16 +56,16 @@ class SupabaseClient {
             const { data, error } = await queryBuilder;
 
             if (error) {
-                this.logger.error('Supabase query failed:', { table, error });
+                logger.error('Supabase query failed:', { table, error });
                 throw error;
             }
 
             const duration = Date.now() - start;
-            this.logger.debug(`Supabase query executed in ${duration}ms: ${table}`);
+            logger.debug(`Supabase query executed in ${duration}ms: ${table}`);
 
             return data;
         } catch (error) {
-            this.logger.error('Supabase query error:', { table, error });
+            logger.error('Supabase query error:', { table, error });
             throw error;
         }
     }
@@ -101,7 +85,7 @@ class SupabaseClient {
             }
             return results;
         } catch (error) {
-            this.logger.error('Supabase transaction failed:', error);
+            logger.error('Supabase transaction failed:', error);
             throw error;
         }
     }
@@ -126,7 +110,7 @@ class SupabaseClient {
                 }
             };
         } catch (error) {
-            this.logger.error('Supabase health check failed:', error);
+            logger.error('Supabase health check failed:', error);
             return {
                 status: 'unhealthy',
                 error: error.message
@@ -136,7 +120,7 @@ class SupabaseClient {
 
     async close() {
         // Supabase client doesn't need explicit closing
-        this.logger.info('Supabase client closed');
+        logger.info('Supabase client closed');
     }
 }
 

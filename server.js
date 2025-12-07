@@ -59,7 +59,20 @@ if (!process.env.VERCEL) {
 }
 
 // Middleware
-app.use(helmet()); // Sets various HTTP headers for security
+// Enhanced Helmet security configuration
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com"],
+            fontSrc: ["'self'", "fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            scriptSrc: ["'self'"],
+            connectSrc: ["'self'", process.env.SUPABASE_URL || "https://*.supabase.co"],
+        }
+    },
+    crossOriginEmbedderPolicy: false // Required for Vercel
+}));
 app.use(compression());
 app.use(cors({
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',

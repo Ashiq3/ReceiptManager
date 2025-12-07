@@ -1,24 +1,9 @@
 const Receipt = require('../models/Receipt');
 const { validationResult } = require('express-validator');
-const winston = require('winston');
 const fs = require('fs');
 const path = require('path');
+const logger = require('../utils/logger');
 
-const logger = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-    ),
-    transports: [
-        new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.colorize(),
-                winston.format.simple()
-            )
-        })
-    ]
-});
 
 class ReceiptController {
     async uploadReceipt(req, res) {

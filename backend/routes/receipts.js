@@ -9,13 +9,13 @@ const fs = require('fs');
 // Configure storage
 const storage = multer.memoryStorage();
 
-// File filter
+// File filter - supports all common receipt image formats
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'image/webp', 'image/heic'];
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are supported.'), false);
+        cb(new Error('Invalid file type. Supported: JPEG, PNG, PDF, WebP, HEIC.'), false);
     }
 };
 

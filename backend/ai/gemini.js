@@ -1,8 +1,13 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
+const logger = require('../utils/logger');
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 const fileToGenerativePart = (path, mimeType) => {
     return {
@@ -13,53 +18,51 @@ const fileToGenerativePart = (path, mimeType) => {
     };
 };
 
-// Receipt extraction prompt
-const RECEIPT_PROMPT = `
-You are an advanced document analyst. Extract structured data from the provided image.
-Return JSON ONLY. No markdown.
+// Receipt extraction prompt - optimized for token efficiency
+const RECEIPT_PROMPT = `Extract data from this image as JSON only (no markdown).
 
-**Core Fields**:
-- vendor (string), date (YYYY-MM-DD), total (number), tax (number), currency (string)
-- payment_method (string)
+Required fields: vendor, date (YYYY-MM-DD), total, tax, currency, payment_method
+Items array: description, quantity, unit_price, total_price, category
+extracted_data object: any other fields (address, phone, invoice_id, etc.) in snake_case
 
-**Line Items** ('items' array):
-- description, quantity, unit_price, total_price, category
+If not a receipt, put all text in extracted_data.raw_content
 
-**Dynamic Data** ('extracted_data' object):
-- Capture ANY other fields (e.g., address, phone, invoice_id, tax_id).
-- Use snake_case keys.
-
-**Fallback**:
-- If not a receipt, extract text to 'raw_content' in 'extracted_data'.
-
-**Format**:
-{
-  "vendor": null, "date": null, "total": null, "tax": null,
-  "currency": "USD", "payment_method": null,
-  "items": [],
-  "extracted_data": {}
-}
-`;
+Format: {"vendor":null,"date":null,"total":null,"tax":null,"currency":"USD","payment_method":null,"items":[],"extracted_data":{}}`;
 
 const processReceipt = async (filePath, mimeType) => {
-    try {
-        // User explicitly requested gemini-2.5-flash
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    let lastError;
 
-        const imagePart = fileToGenerativePart(filePath, mimeType);
-        const result = await model.generateContent([RECEIPT_PROMPT, imagePart]);
-        const response = await result.response;
-        const text = response.text();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            logger.info(`AI processing attempt ${attempt}/${MAX_RETRIES} for ${filePath}`);
 
-        // Clean up markdown if present
-        const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            const imagePart = fileToGenerativePart(filePath, mimeType);
+            const result = await model.generateContent([RECEIPT_PROMPT, imagePart]);
+            const response = await result.response;
+            const text = response.text();
 
-        return JSON.parse(jsonStr);
-    } catch (error) {
-        console.error("AI Processing Error:", error.message, error.stack);
-        // Ensure we throw a useful error
-        throw new Error(`Failed to process receipt with AI: ${error.message}`);
+            // Clean up markdown if present
+            const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(jsonStr);
+
+            logger.info(`AI processing succeeded on attempt ${attempt}`);
+            return parsed;
+        } catch (error) {
+            lastError = error;
+            logger.warn(`AI attempt ${attempt} failed: ${error.message}`);
+
+            if (attempt < MAX_RETRIES) {
+                const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1); // Exponential backoff
+                logger.info(`Retrying in ${delay}ms...`);
+                await new Promise(r => setTimeout(r, delay));
+            }
+        }
     }
+
+    logger.error("AI Processing Error after all retries:", lastError.message);
+    throw new Error(`Failed to process receipt with AI: ${lastError.message}`);
 };
 
 module.exports = { processReceipt };
+
