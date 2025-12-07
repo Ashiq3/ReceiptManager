@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { Box, CssBaseline, Container, CircularProgress } from '@mui/material';
@@ -13,15 +13,16 @@ import '@fontsource/playfair-display/600.css';
 import '@fontsource/playfair-display/700.css';
 
 // Pages
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import ReceiptsPage from './pages/ReceiptsPage';
-import ReceiptDetailPage from './pages/ReceiptDetailPage';
-import ScanPage from './pages/ScanPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import SettingsPage from './pages/SettingsPage';
-import NotFoundPage from './pages/NotFoundPage';
+// Lazy Load Pages
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const ReceiptsPage = React.lazy(() => import('./pages/ReceiptsPage'));
+const ReceiptDetailPage = React.lazy(() => import('./pages/ReceiptDetailPage'));
+const ScanPage = React.lazy(() => import('./pages/ScanPage'));
+const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 
 // Components
 import Header from './components/Header';
@@ -216,58 +217,64 @@ function App() {
                     }}
                 >
                     <Container maxWidth="xl" sx={{ mt: 2, mb: 4 }}>
-                        <Routes>
-                            <Route path="/login" element={
-                                isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />
-                            } />
-                            <Route path="/register" element={
-                                isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />
-                            } />
+                        <Suspense fallback={
+                            <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+                                <CircularProgress color="primary" />
+                            </Box>
+                        }>
+                            <Routes>
+                                <Route path="/login" element={
+                                    isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />
+                                } />
+                                <Route path="/register" element={
+                                    isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />
+                                } />
 
-                            <Route path="/" element={
-                                <PrivateRoute>
-                                    <Navigate to="/dashboard" />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/" element={
+                                    <PrivateRoute>
+                                        <Navigate to="/dashboard" />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/dashboard" element={
-                                <PrivateRoute>
-                                    <DashboardPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/dashboard" element={
+                                    <PrivateRoute>
+                                        <DashboardPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/receipts" element={
-                                <PrivateRoute>
-                                    <ReceiptsPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/receipts" element={
+                                    <PrivateRoute>
+                                        <ReceiptsPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/receipts/:id" element={
-                                <PrivateRoute>
-                                    <ReceiptDetailPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/receipts/:id" element={
+                                    <PrivateRoute>
+                                        <ReceiptDetailPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/scan" element={
-                                <PrivateRoute>
-                                    <ScanPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/scan" element={
+                                    <PrivateRoute>
+                                        <ScanPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/analytics" element={
-                                <PrivateRoute>
-                                    <AnalyticsPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/analytics" element={
+                                    <PrivateRoute>
+                                        <AnalyticsPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="/settings" element={
-                                <PrivateRoute>
-                                    <SettingsPage />
-                                </PrivateRoute>
-                            } />
+                                <Route path="/settings" element={
+                                    <PrivateRoute>
+                                        <SettingsPage />
+                                    </PrivateRoute>
+                                } />
 
-                            <Route path="*" element={<NotFoundPage />} />
-                        </Routes>
+                                <Route path="*" element={<NotFoundPage />} />
+                            </Routes>
+                        </Suspense>
                     </Container>
                 </Box>
             </Box>

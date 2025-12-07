@@ -612,32 +612,40 @@ class Receipt {
                 ];
             }
 
-            // This is a simplified version - in a real app you'd use PostgreSQL functions
-            const items = await this.db.query('receipt_items', this.db.client
+            // Validated Date Filtering for Performance
+            let query = this.db.client
                 .from('receipt_items')
-                .select('category, total_price')
-            );
+                .select('category, total_price, receipts!inner(receipt_date)')
+                .eq('receipts.business_id', businessId); // Ensure we only get items for this business
+
+            if (startDate && endDate) {
+                query = query.gte('receipts.receipt_date', startDate).lte('receipts.receipt_date', endDate);
+            }
+
+            const items = await this.db.query('receipt_items', query);
 
             const itemsList = items || [];
 
-            // Group by category manually
+            // Group by category manually (since Supabase client doesn't support complex GROUP BY easily without RPC)
             const categories = {};
             itemsList.forEach(item => {
-                if (!categories[item.category]) {
-                    categories[item.category] = {
-                        category: item.category,
+                const cat = item.category || 'Uncategorized';
+                if (!categories[cat]) {
+                    categories[cat] = {
+                        category: cat,
                         total_amount: 0,
                         item_count: 0
                     };
                 }
-                categories[item.category].total_amount += item.total_price || 0;
-                categories[item.category].item_count += 1;
+                categories[cat].total_amount += item.total_price || 0;
+                categories[cat].item_count += 1;
             });
 
             return Object.values(categories)
                 .sort((a, b) => b.total_amount - a.total_amount)
                 .slice(0, 10);
         } catch (error) {
+            console.error('Category Breakdown Error:', error);
             throw error;
         }
     }

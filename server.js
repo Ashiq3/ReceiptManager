@@ -1,12 +1,12 @@
 require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 
 // Initialize Express app
 const app = express();
@@ -59,7 +59,7 @@ if (!process.env.VERCEL) {
 }
 
 // Middleware
-app.use(helmet());
+app.use(helmet()); // Sets various HTTP headers for security
 app.use(compression());
 app.use(cors({
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
@@ -67,16 +67,25 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-
-// Security headers
-app.use((req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    next();
+// Global Rate Limiting
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: {
+        error: {
+            code: 'TM_TOO_MANY_REQUESTS',
+            message: 'Too many requests from this IP, please try again after 15 minutes'
+        }
+    }
 });
+// Apply to all API routes
+app.use('/api/', globalLimiter);
+
+// Parse JSON bodies (as sent by API clients)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Database connection
 const { initializeSupabase } = require('./backend/supabaseClient');

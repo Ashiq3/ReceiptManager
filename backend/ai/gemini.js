@@ -15,33 +15,29 @@ const fileToGenerativePart = (path, mimeType) => {
 
 // Receipt extraction prompt
 const RECEIPT_PROMPT = `
-You are an advanced AI document analyst. Your goal is to extract EVERY piece of meaningful information from the provided image (receipt, invoice, form, etc.).
-Be extremely detailed. Do not summarize.
+You are an advanced document analyst. Extract structured data from the provided image.
+Return JSON ONLY. No markdown.
 
-INSTRUCTIONS:
-1.  **Standard Fields**: Extract 'vendor' (store name), 'date' (YYYY-MM-DD), 'total' (number), 'tax' (number), 'currency' (e.g., 'USD'), 'payment_method'.
-2.  **Line Items**: Extract all line items into an 'items' array. Each item should have: 'description', 'quantity', 'unit_price', 'total_price', 'category'.
-3.  **Dynamic Data (CRITICAL)**: Extract ANY other text that looks like a field or meaningful data into an "extracted_data" object.
-    *   Examples: "Store Address", "Phone Number", "Website", "Cashier Name", "Time", "Tax ID", "Invoice Number", "Reference Code", "Table Number", "Guest Count", "Tip", "Service Charge".
-    *   Use snake_case for keys (e.g., "merchant_address", "tax_number", "cashier_name").
-    *   Capture EVERYTHING you can read that isn't a standard field.
-4.  **Fallback (Universal Extraction)**: If the document is NOT a receipt or form (e.g., a screenshot of code, a letter, a sign), extract the main text content into a key called "raw_content" or "document_text" inside "extracted_data". NEVER return an empty object.
+**Core Fields**:
+- vendor (string), date (YYYY-MM-DD), total (number), tax (number), currency (string)
+- payment_method (string)
 
-RETURN JSON ONLY.
-Structure:
+**Line Items** ('items' array):
+- description, quantity, unit_price, total_price, category
+
+**Dynamic Data** ('extracted_data' object):
+- Capture ANY other fields (e.g., address, phone, invoice_id, tax_id).
+- Use snake_case keys.
+
+**Fallback**:
+- If not a receipt, extract text to 'raw_content' in 'extracted_data'.
+
+**Format**:
 {
-  "vendor": "Store Name", // or null
-  "date": "2023-01-01",   // or null
-  "total": 100.00,        // or null
-  "tax": 8.50,
-  "currency": "USD",
-  "payment_method": "Credit Card",
+  "vendor": null, "date": null, "total": null, "tax": null,
+  "currency": "USD", "payment_method": null,
   "items": [],
-  "extracted_data": {
-    "merchant_address": "123 Main St, City, State",
-    "document_summary": "Screenshot of a coding environment showing...",
-    "raw_content": "Full text of the document..."
-  }
+  "extracted_data": {}
 }
 `;
 
