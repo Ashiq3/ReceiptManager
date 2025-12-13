@@ -12,8 +12,12 @@ import '@fontsource/playfair-display/400.css';
 import '@fontsource/playfair-display/600.css';
 import '@fontsource/playfair-display/700.css';
 
-// Pages
-// Lazy Load Pages
+// Components
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import PrivateRoute from './components/PrivateRoute';
+
+// Pages - Lazy Loaded
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
@@ -23,11 +27,6 @@ const ScanPage = React.lazy(() => import('./pages/ScanPage'));
 const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'));
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
-
-// Components
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import PrivateRoute from './components/PrivateRoute';
 
 // Create Luxury Theme
 let theme = createTheme({
